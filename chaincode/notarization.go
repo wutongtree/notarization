@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
-	"strconv"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/core/crypto/primitives"
@@ -33,7 +32,7 @@ type NotarizationtChaincode struct {
 // args[2]: fileName
 // args[3]: filePath
 // args[4]: base64 of file content
-// args[5]: sha512 hash of file content
+// args[5]: md5sum hash of file content
 // args[6]: base64 of signature of file
 // args[7]: timestamp
 func (t *NotarizationtChaincode) sign(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
@@ -65,11 +64,6 @@ func (t *NotarizationtChaincode) sign(stub *shim.ChaincodeStub, args []string) (
 	}
 
 	timestr := args[7]
-	timestamp, err := strconv.ParseInt(timestr, 10, 64)
-	if err != nil {
-		myLogger.Errorf("system error %v", err)
-		return nil, errors.New("Failed parse timestamp")
-	}
 
 	err = os.MkdirAll(filePath, 0600)
 	if err != nil {
@@ -90,13 +84,13 @@ func (t *NotarizationtChaincode) sign(stub *shim.ChaincodeStub, args []string) (
 		filePath,
 		fileHash,
 		fileSignature,
-		timestamp)
+		timestr)
 }
 
 // verify verify a file signature with a given account ID
 // args[0]: accountID
 // args[1]: base64 of file content
-// args[2]: sha512 hash of file content
+// args[2]: md5sum hash of file content
 // args[3]: base64 of signature of file
 func (t *NotarizationtChaincode) verify(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	myLogger.Debugf("+++++++++++++++++++++++++++++++++++ verify in chaincode +++++++++++++++++++++++++++++++++")

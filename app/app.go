@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha512"
+	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -91,7 +91,7 @@ type signatureEntity struct {
 	FileHash      string `json:"fileHash,omitempty"`
 	FileName      string `json:"fileName,omitempty"`
 	FileSignature string `json:"fileSignature,omitempty"`
-	Timestamp     int64  `json:"timestamp,omitempty"`
+	Timestamp     string `json:"timestamp,omitempty"`
 }
 
 type signatureResponse struct {
@@ -320,10 +320,10 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 
 		return
 	}
-	hashSum512 := sha512.Sum512(fileContent)
-	fileHash := fmt.Sprintf("%02x", hashSum512)
+	md5sum := md5.Sum(fileContent)
+	fileHash := fmt.Sprintf("%02x", md5sum)
 	logger.Infof(" *** fileContent: %v ***", string(fileContent))
-	logger.Infof(" *** hashSum512: %v ***", hashSum512)
+	logger.Infof(" *** md5sum: %v ***", md5sum)
 	logger.Infof(" *** fileHash: %v ***", fileHash)
 	logger.Infof(" *** funcHash: %v ***", signRequest.FileHash)
 	if fileHash != strings.ToLower(signRequest.FileHash) {
@@ -435,8 +435,9 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	filePath := localStore + "/" + "files"
-	timestamp := time.Now().UnixNano()
-	timestr := fmt.Sprintf("%v", timestamp)
+
+	location, _ := time.LoadLocation("Asia/Chongqing")
+	timestr := time.Now().In(location).String()
 
 	// invoke the chaincode
 	var signChaincode chaincodeRequest
@@ -558,8 +559,8 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 
 		return
 	}
-	hashSum512 := sha512.Sum512(fileContent)
-	fileHash := fmt.Sprintf("%02x", hashSum512)
+	md5sum := md5.Sum(fileContent)
+	fileHash := fmt.Sprintf("%02x", md5sum)
 	if fileHash != strings.ToLower(verifyRequest.FileHash) {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "fileHash not match."})
@@ -569,8 +570,8 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	// invoke the chaincode
-	timestamp := time.Now().UnixNano()
-	timestr := fmt.Sprintf("%v", timestamp)
+	location, _ := time.LoadLocation("Asia/Chongqing")
+	timestr := time.Now().In(location).String()
 
 	var verifyChaincode chaincodeRequest
 	var params pb.ChaincodeSpec
@@ -683,8 +684,8 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 	}
 
 	// invoke the chaincode
-	timestamp := time.Now().UnixNano()
-	timestr := fmt.Sprintf("%v", timestamp)
+	location, _ := time.LoadLocation("Asia/Chongqing")
+	timestr := time.Now().In(location).String()
 
 	var signatureChaincode chaincodeRequest
 	var params pb.ChaincodeSpec
@@ -777,8 +778,8 @@ func deployChaincode(secureContext string) {
 	}
 
 	// deploy chaincode
-	timestamp := time.Now().UnixNano()
-	timestr := fmt.Sprintf("%v", timestamp)
+	location, _ := time.LoadLocation("Asia/Chongqing")
+	timestr := time.Now().In(location).String()
 
 	var deployhaincode chaincodeRequest
 	var params pb.ChaincodeSpec

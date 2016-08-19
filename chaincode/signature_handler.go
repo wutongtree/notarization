@@ -26,7 +26,7 @@ type signatureEntity struct {
 	FileHash      string `json:"fileHash,omitempty"`
 	FileName      string `json:"fileName,omitempty"`
 	FileSignature string `json:"fileSignature,omitempty"`
-	Timestamp     int64  `json:"timestamp,omitempty"`
+	Timestamp     string `json:"timestamp,omitempty"`
 }
 
 //SignatureHandler provides APIs used to perform operations on CC's KV store
@@ -50,7 +50,7 @@ func (t *signatureHandler) createTable(stub *shim.ChaincodeStub) error {
 		&shim.ColumnDefinition{Name: columnCertificate, Type: shim.ColumnDefinition_STRING, Key: false},
 		&shim.ColumnDefinition{Name: columnFileName, Type: shim.ColumnDefinition_STRING, Key: false},
 		&shim.ColumnDefinition{Name: columnFilePath, Type: shim.ColumnDefinition_STRING, Key: false},
-		&shim.ColumnDefinition{Name: columnTimestamp, Type: shim.ColumnDefinition_INT64, Key: false},
+		&shim.ColumnDefinition{Name: columnTimestamp, Type: shim.ColumnDefinition_STRING, Key: false},
 	})
 
 }
@@ -70,7 +70,7 @@ func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
 	filePath string,
 	fileHash string,
 	fileSignature []byte,
-	timestamp int64) error {
+	timestamp string) error {
 
 	myLogger.Debugf("insert accountID=%v certficate=%v fileName=%v filePath=%v fileHash=%v fileSignature=%v timestamp=%v", accountID, certficate, fileName, filePath, fileHash, fileSignature, timestamp)
 
@@ -83,7 +83,7 @@ func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
 			&shim.Column{Value: &shim.Column_String_{String_: certficate}},
 			&shim.Column{Value: &shim.Column_String_{String_: fileName}},
 			&shim.Column{Value: &shim.Column_String_{String_: filePath}},
-			&shim.Column{Value: &shim.Column_Int64{Int64: timestamp}}},
+			&shim.Column{Value: &shim.Column_String_{String_: timestamp}}},
 	})
 
 	// you can only assign balances to new account IDs
@@ -174,7 +174,7 @@ func (t *signatureHandler) getSignatures(stub *shim.ChaincodeStub, accountID str
 		signatureEntity.FileSignature = base64.StdEncoding.EncodeToString(row.Columns[1].GetBytes())
 		signatureEntity.FileHash = row.Columns[2].GetString_()
 		signatureEntity.FileName = row.Columns[4].GetString_()
-		signatureEntity.Timestamp = row.Columns[6].GetInt64()
+		signatureEntity.Timestamp = row.Columns[6].GetString_()
 
 		signatures = append(signatures, signatureEntity)
 	}
