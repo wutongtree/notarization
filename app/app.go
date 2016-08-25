@@ -18,7 +18,7 @@ import (
 	"github.com/gocraft/web"
 	"github.com/hyperledger/fabric/core/comm"
 	"github.com/hyperledger/fabric/core/crypto"
-	"github.com/hyperledger/fabric/core/crypto/primitives"
+	"github.com/hyperledger/fabric/core/util"
 	pb "github.com/hyperledger/fabric/protos"
 	"github.com/spf13/viper"
 )
@@ -169,7 +169,7 @@ func (s *NotarizationAPP) SetResponseType(rw web.ResponseWriter, req *web.Reques
 // had not been defined.
 func (s *NotarizationAPP) NotFound(rw web.ResponseWriter, r *web.Request) {
 	rw.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(rw).Encode(restResult{Error: "Openchain endpoint not found."})
+	json.NewEncoder(rw).Encode(restResult{Error: "Notarization endpoint not found."})
 }
 
 // login confirms the account and secret password of the client with the
@@ -322,7 +322,6 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	}
 	md5sum := md5.Sum(fileContent)
 	fileHash := fmt.Sprintf("%02x", md5sum)
-	logger.Infof(" *** fileContent: %v ***", string(fileContent))
 	logger.Infof(" *** md5sum: %v ***", md5sum)
 	logger.Infof(" *** fileHash: %v ***", fileHash)
 	logger.Infof(" *** funcHash: %v ***", signRequest.FileHash)
@@ -345,7 +344,7 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	logger.Debugf("token: %v - %v", signRequest.EnrollToken, string(token))
 
 	// Retrieve the REST data
-	urlstr := getHTTPURL("registrar/" + signRequest.EnrollID + "/tcert")
+	urlstr := getHTTPURL("registrar/" + signRequest.EnrollID + "/ecert")
 	logger.Infof("url request: %v", urlstr)
 	response, err := performHTTPGet(urlstr)
 	if err != nil {
@@ -369,8 +368,8 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 
 	if len(result.OK) < 0 {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Get tcert error."})
-		logger.Errorf("Get tcert error.")
+		encoder.Encode(restResult{Error: "Get ecert error."})
+		logger.Errorf("Get ecert error.")
 
 		return
 	}
@@ -380,14 +379,6 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "QueryUnescape error."})
 		logger.Error("Error: QueryUnescape error.")
-
-		return
-	}
-	cert, err := primitives.PEMtoDER([]byte(certString))
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "PEMtoDER error."})
-		logger.Error("Error: PEMtoDER error.")
 
 		return
 	}
@@ -403,11 +394,11 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		logger.Error("Error: InitClient error.")
 		return
 	}
-	handler, err := client.GetTCertificateHandlerFromDER(cert)
+	handler, err := client.GetEnrollmentCertificateHandler()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "GetTCertificateHandlerFromDER error."})
-		logger.Error("Error: GetTCertificateHandlerFromDER error.")
+		encoder.Encode(restResult{Error: "GetEnrollmentCertificateHandler error."})
+		logger.Error("Error: GetEnrollmentCertificateHandler error.")
 
 		return
 	}
@@ -443,6 +434,7 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	var signChaincode chaincodeRequest
 	var params pb.ChaincodeSpec
 	args := []string{
+		"sign",
 		signRequest.EnrollID,
 		certString,
 		signRequest.FileName,
@@ -456,10 +448,7 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	params.ChaincodeID = &pb.ChaincodeID{
 		Name: chaincodeName,
 	}
-	params.CtorMsg = &pb.ChaincodeInput{
-		Function: "sign",
-		Args:     args,
-	}
+	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
 	params.SecureContext = signRequest.EnrollID
 
 	signChaincode.Jsonrpc = "2.0"
@@ -576,6 +565,7 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 	var verifyChaincode chaincodeRequest
 	var params pb.ChaincodeSpec
 	args := []string{
+		"verify",
 		verifyRequest.EnrollID,
 		verifyRequest.FileContent,
 		verifyRequest.FileHash,
@@ -585,10 +575,7 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 	params.ChaincodeID = &pb.ChaincodeID{
 		Name: chaincodeName,
 	}
-	params.CtorMsg = &pb.ChaincodeInput{
-		Function: "verify",
-		Args:     args,
-	}
+	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
 	params.SecureContext = verifyRequest.EnrollID
 
 	verifyChaincode.Jsonrpc = "2.0"
@@ -689,16 +676,16 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 
 	var signatureChaincode chaincodeRequest
 	var params pb.ChaincodeSpec
-	args := []string{signatureRequest.EnrollID}
+	args := []string{
+		"getSignatures",
+		signatureRequest.EnrollID,
+	}
 
 	params.Type = pb.ChaincodeSpec_GOLANG
 	params.ChaincodeID = &pb.ChaincodeID{
 		Name: chaincodeName,
 	}
-	params.CtorMsg = &pb.ChaincodeInput{
-		Function: "getSignatures",
-		Args:     args,
-	}
+	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
 	params.SecureContext = signatureRequest.EnrollID
 
 	signatureChaincode.Jsonrpc = "2.0"
@@ -769,7 +756,7 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 // --------------- common func --------------
 
 func deployChaincode(secureContext string) {
-	var chaincodePath = os.Getenv("CHAINCODE_PATH_NOTARIZATION")
+	var chaincodePath = os.Getenv("CORE_APP_NOTARIZATION_CHAINCODEPATH")
 	if chaincodePath == "" {
 		chaincodePath = viper.GetString("app.chaincodePath")
 		if chaincodePath == "" {
@@ -783,16 +770,13 @@ func deployChaincode(secureContext string) {
 
 	var deployhaincode chaincodeRequest
 	var params pb.ChaincodeSpec
-	args := []string{}
+	args := []string{"init"}
 
 	params.Type = pb.ChaincodeSpec_GOLANG
 	params.ChaincodeID = &pb.ChaincodeID{
 		Path: chaincodePath,
 	}
-	params.CtorMsg = &pb.ChaincodeInput{
-		Function: "init",
-		Args:     args,
-	}
+	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
 	params.SecureContext = secureContext
 
 	deployhaincode.Jsonrpc = "2.0"

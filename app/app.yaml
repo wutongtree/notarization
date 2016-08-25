@@ -23,7 +23,7 @@ rest:
     enabled: true
 
     # The address that the REST service will listen on for incoming requests.
-    address: vp0:7050
+    address: localhost:7050
 
     validPatterns:
 
@@ -166,11 +166,11 @@ peer:
     # PKI member services properties
     pki:
         eca:
-            paddr: membersrvc:7054
+            paddr: membersrvc0:7054
         tca:
-            paddr: membersrvc:7054
+            paddr: membersrvc0:7054
         tlsca:
-            paddr: membersrvc:7054
+            paddr: membersrvc0:7054
         tls:
             enabled: false
             rootcert:
@@ -475,6 +475,11 @@ app:
     # Setting for runtime.GOMAXPROCS(n). If n < 1, it does not change the current setting
     gomaxprocs: -1
     workers: 2
+
+    # Setting for notarization. 
+    notarization:
+        # chaincode path
+        chaincodePath: "github.com/wutongtree/notarization/chaincode"
 
     # Sync related configuration
     sync:

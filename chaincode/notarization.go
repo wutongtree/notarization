@@ -35,7 +35,7 @@ type NotarizationtChaincode struct {
 // args[5]: md5sum hash of file content
 // args[6]: base64 of signature of file
 // args[7]: timestamp
-func (t *NotarizationtChaincode) sign(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) sign(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	myLogger.Debugf("+++++++++++++++++++++++++++++++++++ sign in chaincode +++++++++++++++++++++++++++++++++")
 	myLogger.Debugf("sign args: %v", args)
 
@@ -92,7 +92,7 @@ func (t *NotarizationtChaincode) sign(stub *shim.ChaincodeStub, args []string) (
 // args[1]: base64 of file content
 // args[2]: md5sum hash of file content
 // args[3]: base64 of signature of file
-func (t *NotarizationtChaincode) verify(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) verify(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	myLogger.Debugf("+++++++++++++++++++++++++++++++++++ verify in chaincode +++++++++++++++++++++++++++++++++")
 	myLogger.Debugf("verify args: %v", args)
 
@@ -154,7 +154,7 @@ func (t *NotarizationtChaincode) verify(stub *shim.ChaincodeStub, args []string)
 
 // verify verify a file signature with a given account ID
 // args[0]: accountID
-func (t *NotarizationtChaincode) getSignatures(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) getSignatures(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	myLogger.Debugf("+++++++++++++++++++++++++++++++++++ verify in chaincode +++++++++++++++++++++++++++++++++")
 	myLogger.Debugf("verify args: %v", args)
 
@@ -180,7 +180,7 @@ func (t *NotarizationtChaincode) getSignatures(stub *shim.ChaincodeStub, args []
 // ----------------------- CHAINCODE ----------------------- //
 
 // Init initialization, this method will create asset despository in the chaincode state
-func (t *NotarizationtChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	myLogger.Debugf("********************************Init****************************************")
 
 	myLogger.Info("[NotarizationtChaincode] Init")
@@ -193,7 +193,7 @@ func (t *NotarizationtChaincode) Init(stub *shim.ChaincodeStub, function string,
 
 // Invoke  method is the interceptor of all invocation transactions, its job is to direct
 // invocation transactions to intended APIs
-func (t *NotarizationtChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	myLogger.Debugf("********************************Invoke****************************************")
 
 	//	 Handle different functions
@@ -210,7 +210,7 @@ func (t *NotarizationtChaincode) Invoke(stub *shim.ChaincodeStub, function strin
 
 // Query method is the interceptor of all invocation transactions, its job is to direct
 // query transactions to intended APIs, and return the result back to callers
-func (t *NotarizationtChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *NotarizationtChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	myLogger.Debugf("********************************Query****************************************")
 
 	// Handle different functions

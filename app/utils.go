@@ -15,9 +15,9 @@ import (
 )
 
 func getHTTPURL(resource string) string {
-	var restServer = os.Getenv("CORE_REST_SERVER")
+	var restServer = os.Getenv("CORE_REST_ADDRESS")
 	if restServer == "" {
-		viper.GetString("rest.address")
+		restServer = viper.GetString("rest.address")
 	}
 
 	return fmt.Sprintf("http://%v/%v", restServer, resource)

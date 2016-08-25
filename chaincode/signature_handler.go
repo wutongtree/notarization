@@ -40,7 +40,7 @@ func NewSignatureHandler() *signatureHandler {
 
 // createTable initiates a new asset signature table in the chaincode state
 // stub: chaincodestub
-func (t *signatureHandler) createTable(stub *shim.ChaincodeStub) error {
+func (t *signatureHandler) createTable(stub shim.ChaincodeStubInterface) error {
 
 	// Create asset signature table
 	return stub.CreateTable(tableColumn, []*shim.ColumnDefinition{
@@ -63,7 +63,7 @@ func (t *signatureHandler) createTable(stub *shim.ChaincodeStub) error {
 // fileHash: file hash
 // fileSignature: file signature
 // timestamp: timestamp
-func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
+func (t *signatureHandler) submitSignature(stub shim.ChaincodeStubInterface,
 	accountID string,
 	certficate string,
 	fileName string,
@@ -100,7 +100,7 @@ func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
 // accountID: account ID
 // fileHash: file hash
 // fileSignature:  file signature
-func (t *signatureHandler) queryTable(stub *shim.ChaincodeStub, accountID string, fileHash string, fileSignature []byte) (shim.Row, error) {
+func (t *signatureHandler) queryTable(stub shim.ChaincodeStubInterface, accountID string, fileHash string, fileSignature []byte) (shim.Row, error) {
 
 	var columns []shim.Column
 	col1 := shim.Column{Value: &shim.Column_String_{String_: accountID}}
@@ -116,7 +116,7 @@ func (t *signatureHandler) queryTable(stub *shim.ChaincodeStub, accountID string
 // queryTables returns the record row matching a correponding account ID and fileHash on the chaincode state table
 // stub: chaincodestub
 // accountID: account ID
-func (t *signatureHandler) queryTables(stub *shim.ChaincodeStub, accountID string) (<-chan shim.Row, error) {
+func (t *signatureHandler) queryTables(stub shim.ChaincodeStubInterface, accountID string) (<-chan shim.Row, error) {
 
 	var columns []shim.Column
 	col1 := shim.Column{Value: &shim.Column_String_{String_: accountID}}
@@ -130,7 +130,7 @@ func (t *signatureHandler) queryTables(stub *shim.ChaincodeStub, accountID strin
 // accountID: account ID
 // fileHash: file hash
 // fileSignature:  file signature
-func (t *signatureHandler) getCertificate(stub *shim.ChaincodeStub, accountID string, fileHash string, fileSignature []byte) (string, error) {
+func (t *signatureHandler) getCertificate(stub shim.ChaincodeStubInterface, accountID string, fileHash string, fileSignature []byte) (string, error) {
 	row, err := t.queryTable(stub, accountID, fileHash, fileSignature)
 	if err != nil {
 		return "", err
@@ -147,7 +147,7 @@ func (t *signatureHandler) getCertificate(stub *shim.ChaincodeStub, accountID st
 // getSignatures queries the certficate information matching a correponding account ID and fileHash on the chaincode state table
 // stub: chaincodestub
 // accountID: account ID
-func (t *signatureHandler) getSignatures(stub *shim.ChaincodeStub, accountID string) ([]byte, error) {
+func (t *signatureHandler) getSignatures(stub shim.ChaincodeStubInterface, accountID string) ([]byte, error) {
 	rowChannel, err := t.queryTables(stub, accountID)
 	if err != nil {
 		return nil, err
