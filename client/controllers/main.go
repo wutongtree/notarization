@@ -44,11 +44,11 @@ func (c *MainController) GetSignatures() {
 	}
 
 	signatures := models.GetSignatures(uname, token)
-	if signatures == nil {
-		c.Redirect("/", 302)
-		return
-	}
-
 	c.Data["Username"] = uname
-	c.Data["Signatures"] = *signatures
+	if signatures == nil {
+		var result models.SignatureResponse
+		c.Data["Signatures"] = result
+	} else {
+		c.Data["Signatures"] = *signatures
+	}
 }

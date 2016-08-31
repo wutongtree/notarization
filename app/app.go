@@ -104,7 +104,7 @@ type signatureResponse struct {
 
 // certsResult defines the response payload for the GetTransactionCert REST interface request.
 type certsResult struct {
-	OK []string
+	OK string
 }
 
 // chaincodeRequest defines request for invoke chaincode
@@ -366,7 +366,7 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 	}
 	logger.Debugf("registrar: %v - %v", signRequest.EnrollID, result.OK)
 
-	if len(result.OK) < 0 {
+	if len(result.OK) <= 0 {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "Get ecert error."})
 		logger.Errorf("Get ecert error.")
@@ -374,7 +374,7 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	certString, err := url.QueryUnescape(result.OK[0])
+	certString, err := url.QueryUnescape(result.OK)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "QueryUnescape error."})
@@ -678,8 +678,7 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 	var params pb.ChaincodeSpec
 	args := []string{
 		"getSignatures",
-		signatureRequest.EnrollID,
-	}
+		signatureRequest.EnrollID}
 
 	params.Type = pb.ChaincodeSpec_GOLANG
 	params.ChaincodeID = &pb.ChaincodeID{
