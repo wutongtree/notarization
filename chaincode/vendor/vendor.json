@@ -3,78 +3,9 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "iqqWoRFK+Za0HjF7I0/VAKDPBng=",
-			"origin": "github.com/hyperledger/fabric/vendor/github.com/golang/protobuf/proto",
-			"path": "github.com/golang/protobuf/proto",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "Ty4MdOAtYbtOvy2S+8hgLQRA4Ew=",
-			"path": "github.com/hyperledger/fabric/core/chaincode/shim",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "SQky96fIqo+yvXJdHOXIc3eXbbQ=",
-			"path": "github.com/hyperledger/fabric/core/chaincode/shim/crypto",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "xIJH/ovtqPBLSi2Y3+GEBa2+S/w=",
-			"path": "github.com/hyperledger/fabric/core/chaincode/shim/crypto/attr",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "u00cH2Zf6qKkSanPPDS4bRYikZg=",
-			"path": "github.com/hyperledger/fabric/core/chaincode/shim/crypto/ecdsa",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "RD5XdNr59UaVLdAQgvzD/nT0bOw=",
-			"path": "github.com/hyperledger/fabric/core/comm",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "P2RUXhgAkuk77/fJi7bbpkNcn0o=",
-			"path": "github.com/hyperledger/fabric/core/crypto/attributes",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "vYWBnFppTzlpHjtOyfITvvXeaxo=",
-			"path": "github.com/hyperledger/fabric/core/crypto/attributes/proto",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "UH5duux7GQ40D28QJiQfvmCGj9c=",
-			"path": "github.com/hyperledger/fabric/core/crypto/primitives",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "xRybnSkcWsFUr7I4AdHeH7xbIBE=",
-			"path": "github.com/hyperledger/fabric/core/crypto/utils",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "St8F9HHFY32/CHWE4OPvCipmsBg=",
-			"path": "github.com/hyperledger/fabric/core/util",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		},
-		{
-			"checksumSHA1": "1UciJg3gAqRHxj1Mb6OoseS8YOk=",
-			"path": "github.com/hyperledger/fabric/protos",
-			"revision": "981a222eb41c6892305386d75957f5bd9c492f24",
-			"revisionTime": "2016-08-24T02:01:49Z"
-		}
+                        "path": "google/protobuf",
+                        "revision": ""
+                }
 	],
 	"rootPath": "github.com/wutongtree/notarization/chaincode"
 }
