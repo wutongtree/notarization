@@ -124,9 +124,9 @@ func GetSignatures(enrollID, enrollToken string) *SignatureResponse {
 		return nil
 	}
 
-	if result.OK == "" {
-		return nil
-	}
+	// if result.OK == "" {
+	// 	return nil
+	// }
 
 	return &result
 }
@@ -200,7 +200,7 @@ func Verify(enrollID, enrollToken, fileContent, fileHash, signature string) bool
 		return false
 	}
 
-	if result.OK == "" {
+	if result.OK == "" || result.OK == "Invalid signature." {
 		return false
 	}
 

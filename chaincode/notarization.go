@@ -213,14 +213,22 @@ func (t *NotarizationtChaincode) Invoke(stub shim.ChaincodeStubInterface, functi
 func (t *NotarizationtChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	myLogger.Debugf("********************************Query****************************************")
 
+	myLogger.Debugf("Notarizationt: function=%v, args=%v", function, args)
+
+	functionByte, err := base64.StdEncoding.DecodeString(function)
+	if err != nil {
+		return nil, errors.New("Received error function: " + function)
+	}
+	functionName := string(functionByte)
+
 	// Handle different functions
-	if function == "verify" {
+	if functionName == "verify" {
 		return t.verify(stub, args)
-	} else if function == "getSignatures" {
+	} else if functionName == "getSignatures" {
 		return t.getSignatures(stub, args)
 	}
 
-	return nil, errors.New("Received unknown function query invocation with function " + function)
+	return nil, errors.New("Received unknown function query invocation with function " + functionName)
 }
 
 func main() {

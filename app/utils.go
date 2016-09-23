@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -18,6 +19,15 @@ func getHTTPURL(resource string) string {
 	var restServer = os.Getenv("CORE_REST_ADDRESS")
 	if restServer == "" {
 		restServer = viper.GetString("rest.address")
+	}
+
+	server := strings.Split(restServer, ":")
+	if len(server) < 2 {
+		return fmt.Sprintf("http://%v/%v", restServer, resource)
+	}
+
+	if server[1] == "443" {
+		return fmt.Sprintf("https://%v/%v", server[0], resource)
 	}
 
 	return fmt.Sprintf("http://%v/%v", restServer, resource)

@@ -383,7 +383,6 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	// TODO: do NOT need a client
 	// Init a client to sign
 	crypto.Init()
 
@@ -702,7 +701,7 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 	}
 
 	urlstr := getHTTPURL("chaincode")
-	logger.Debugf("url request: %v, %v", urlstr, string(reqBody))
+	logger.Infof("url request: %v, %v", urlstr, string(reqBody))
 	response, err := performHTTPPost(urlstr, reqBody)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
@@ -711,7 +710,7 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 
 		return
 	}
-	logger.Debugf("url response: %v - %v", urlstr, string(response))
+	logger.Infof("url response: %v - %v", urlstr, string(response))
 
 	// parse result
 	var chaincodeResponse chaincodeResponse
@@ -755,12 +754,72 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 // --------------- common func --------------
 
 func deployChaincode(secureContext string) {
-	var chaincodePath = os.Getenv("CORE_APP_NOTARIZATION_CHAINCODEPATH")
+	var chaincodePath = os.Getenv("APP_APP_NOTARIZATION_CHAINCODEPATH")
 	if chaincodePath == "" {
-		chaincodePath = viper.GetString("app.chaincodePath")
+		chaincodePath = viper.GetString("app.notarization.chaincodePath")
 		if chaincodePath == "" {
 			chaincodePath = "github.com/wutongtree/notarization/chaincode"
 		}
+	}
+
+	if secureContext == "" {
+		deployer := os.Getenv("APP_APP_NOTARIZATION_DEPLOYER")
+		if deployer == "" {
+			deployer = viper.GetString("app.notarization.deployer")
+			if deployer == "" {
+				deployer = "lukas"
+			}
+		}
+
+		deployerSecret := os.Getenv("APP_APP_NOTARIZATION_DEPLOYERSECRET")
+		if deployerSecret == "" {
+			deployerSecret = viper.GetString("app.notarization.deployerSecret")
+			if deployerSecret == "" {
+				deployerSecret = "NPKYL39uKbkj"
+			}
+		}
+
+		// Retrieve the REST data
+		url := getHTTPURL("registrar")
+		var loginSpec pb.Secret
+		loginSpec.EnrollId = deployer
+		loginSpec.EnrollSecret = deployerSecret
+		reqBody, err := json.Marshal(loginSpec)
+		if err != nil {
+			logger.Errorf("Error: get request error: %v", err)
+
+			return
+		}
+		logger.Debugf("registrar request: %v - %v", url, string(reqBody))
+		response, err := performHTTPPost(url, reqBody)
+		if err != nil {
+			logger.Error("Error: get data error.")
+
+			return
+		}
+		logger.Debugf("registrar response: %v - %v", url, string(response))
+
+		var result restResult
+		err = json.Unmarshal(response, &result)
+		if err != nil {
+			logger.Error("Error: Unmarshal error.")
+
+			return
+		}
+		logger.Debugf("registrar: %v - %v", deployer, result.OK)
+
+		// Store client security context into a file
+		localStore := getRESTFilePath()
+
+		logger.Infof("Storing login token for user '%s'.\n", deployer)
+		err = ioutil.WriteFile(localStore+"loginToken_"+deployer, []byte(deployer), 0755)
+		if err != nil {
+			panic(fmt.Errorf("Fatal error when storing client login token: %s\n", err))
+
+			return
+		}
+
+		secureContext = deployer
 	}
 
 	// deploy chaincode
@@ -791,27 +850,27 @@ func deployChaincode(secureContext string) {
 	}
 
 	urlstr := getHTTPURL("chaincode")
-	logger.Debugf("url request: %v, %v", urlstr, string(reqBody))
+	logger.Infof("url request: %v, %v", urlstr, string(reqBody))
 	response, err := performHTTPPost(urlstr, reqBody)
 	if err != nil {
 		logger.Error("Error: get data error.")
 
 		return
 	}
-	logger.Debugf("url response: %v - %v", urlstr, string(response))
+	logger.Infof("url response: %v - %v", urlstr, string(response))
 
 	// parse result
 	var chaincodeResponse chaincodeResponse
 	err = json.Unmarshal(response, &chaincodeResponse)
 	if err != nil {
-		logger.Errorf("chaincode Error: %s", err)
+		logger.Errorf("chaincode Error: %v", err)
 
 		return
 	}
 
 	// cache the chaincodeName
 	if chaincodeResponse.Result.Status != "OK" {
-		logger.Errorf("chaincode Error: %s", err)
+		logger.Errorf("chaincode Status Error: %v", chaincodeResponse.Result.Status)
 
 		return
 	}
@@ -855,7 +914,7 @@ func startNotarizationServer() {
 // start serve
 func serve(args []string) error {
 	// Deploy the chaincode
-	deployChaincode("lukas")
+	deployChaincode("")
 
 	// Create and register the REST service if configured
 	startNotarizationServer()
