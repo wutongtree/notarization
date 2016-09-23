@@ -3,6 +3,9 @@ package controllers
 import (
 	"fmt"
 
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/utils/pagination"
+
 	"github.com/wutongtree/notarization/client/models"
 )
 
@@ -20,6 +23,17 @@ func (c *MainController) Get() {
 
 // GetSignatures get signatures
 func (c *MainController) GetSignatures() {
+	page, err := c.GetInt("p")
+	if err != nil {
+		fmt.Printf("page: %d\n", page)
+		page = 1
+	}
+
+	pageoffset, err := beego.AppConfig.Int("pageoffset")
+	if err != nil {
+		pageoffset = 15
+	}
+
 	c.Data["Website"] = Website
 	c.Data["Email"] = Email
 	c.TplName = "main.tpl"
@@ -51,4 +65,8 @@ func (c *MainController) GetSignatures() {
 	} else {
 		c.Data["Signatures"] = *signatures
 	}
+
+	countall := len(signatures.Signatures)
+	paginator := pagination.SetPaginator(c.Ctx, pageoffset, int64(countall))
+	c.Data["paginator"] = paginator
 }

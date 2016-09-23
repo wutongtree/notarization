@@ -96,6 +96,7 @@ func (c *VerifyController) Verify() {
 		c.Data["Signstatus"] = "签名验证错误."
 	} else {
 		c.Data["Signstatus"] = "签名验证正确!"
+		c.Data["Success"] = true
 	}
 	c.Data["IsSigned"] = true
 	c.Data["Username"] = uname

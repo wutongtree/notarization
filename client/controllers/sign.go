@@ -94,6 +94,7 @@ func (c *SignController) Sign() {
 	if signature == "" {
 		c.Data["Signstatus"] = "签名失败."
 	} else {
+		c.Data["Success"] = true
 		c.Data["Signstatus"] = "签名成功."
 		c.Data["FileName"] = h.Filename
 		c.Data["FileHash"] = fileHash

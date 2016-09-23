@@ -1,11 +1,24 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		{{template "base/head.html" .}}
-		{{template "head" .}}
-	</head>
+<html class="HISTORY">
+	<meta name="renderer" content="webkit">
+	<meta http-eqdiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="shortcut icon" href="/static/img/favicon.png" />
+	<meta name="author" content="wutongtree" />
+	<meta name="description" content="Hyperledger sample app - notarization" />
+	<meta name="keywords" content="Hyperledger, fabric, Go, notarization, wutongtree, 梧桐树">
+
+	<link href="/static/css/g.css" rel="stylesheet" />
+
+	<title>基于区块链的文档公证系统</title>
+
 	<body>
-		{{template "body" .}}
-		{{template "base/footer.html" .}}
+		<div class="warpper">
+		<div class="Bdy">
+			{{template "base/head.html" .}}
+			{{template "head" .}}
+			{{template "body" .}}
+			{{template "base/footer.html" .}}
+        </div>
+        </div>
 	</body>
 </html>

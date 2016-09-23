@@ -1,43 +1,31 @@
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="shortcut icon" href="/static/img/favicon.png" />
-<meta name="author" content="wutongtree" />
-<meta name="description" content="Hyperledger sample app - notarization" />
-<meta name="keywords" content="Hyperledger, fabric, Go, notarization, wutongtree, 梧桐树">
-
-<link href="/static/css/bootstrap.min.css" rel="stylesheet" />
-<link href="/static/css/notarization.css" rel="stylesheet" />
-
-<script src="/static/js/jquery-1.10.1.min.js"></script>
-
-<title>基于区块链的文档公证系统</title>
-
-<div id="navbar-main" collapse="isCollapsed" class="navbar-collapse collapse" style="height: 0px;">
-    <ul class="nav navbar-nav">
-        <li>
-            <a href="{{.Website}}">梧桐树</a>
-        </li>
-        <li>
-            <a href="/list">历史签名</a>
-        </li>
-        <li>
-            <a href="/sign">文件签名</a>
-        </li>
-        <li>
-            <a href="/verify">签名验证</a>
-        </li>
-    </ul>
-    <ul class="nav navbar-nav navbar-right">
-        {{if .Username}}
-            <li>
-                <p class="navbar-text">您好，{{.Username}}</p>
+    <div class="Tray">
+        <a href="https://wutongtree.com" class="Logo" target="blank">梧桐树</a>
+        <ul class="navs navs1">
+            <li class="nav on">
+                <a href="{{.Website}}" target="blank">梧桐树</a>
             </li>
-            <li>
-                <a href="/logout">退出</a>
+            <li class="nav">
+                <a href="/list">历史签名</a>
             </li>
-        {{else}}
-            <li>
-                <a href="/login">登录</a>
+            <li class="nav">
+                <a href="/sign">文件签名</a>
             </li>
-        {{end}}
-    </ul>
-</div>
+            <li class="nav">
+                <a href="/verify">签名验证</a>
+            </li>
+        </ul>
+        <ul class="navs2">
+            {{if .Username}}
+                <li class="nav2">
+                    <p class="navbar-text">您好，{{.Username}}</p>
+                </li>
+                <li class="nav2">
+                    <a href="/logout">退出</a>
+                </li>
+            {{else}}
+                <li class="nav2">
+                    <a href="/login">登录</a>
+                </li>
+            {{end}}
+        </ul>
+    </div>
