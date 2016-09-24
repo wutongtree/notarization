@@ -59,6 +59,7 @@ func (c *VerifyController) Verify() {
 	}
 
 	// Get form value.
+	signer := c.GetString("signer")
 	hash := c.GetString("filehash")
 	filesignature := c.GetString("filesignature")
 
@@ -91,7 +92,7 @@ func (c *VerifyController) Verify() {
 		return
 	}
 
-	verified := models.Verify(uname, token, fileContent, fileHash, filesignature)
+	verified := models.Verify(uname, signer, fileContent, fileHash, filesignature)
 	if !verified {
 		c.Data["Signstatus"] = "签名验证错误."
 	} else {

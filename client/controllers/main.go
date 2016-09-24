@@ -31,7 +31,7 @@ func (c *MainController) GetSignatures() {
 
 	pageoffset, err := beego.AppConfig.Int("pageoffset")
 	if err != nil {
-		pageoffset = 15
+		pageoffset = 5
 	}
 
 	c.Data["Website"] = Website

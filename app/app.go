@@ -11,24 +11,13 @@ import (
 	"time"
 
 	"net/http"
-	"net/url"
 
 	"github.com/spf13/cobra"
 
 	"github.com/gocraft/web"
-	"github.com/hyperledger/fabric/core/comm"
-	"github.com/hyperledger/fabric/core/crypto"
 	"github.com/hyperledger/fabric/core/util"
 	pb "github.com/hyperledger/fabric/protos"
 	"github.com/spf13/viper"
-)
-
-// var
-
-var (
-	stopPidFile   string
-	versionFlag   bool
-	chaincodeName string
 )
 
 // --------------- AppCmd ---------------
@@ -74,7 +63,7 @@ type signRequest struct {
 // verifyRequest is a object to verify a signature
 type verifyRequest struct {
 	EnrollID    string `protobuf:"bytes,1,opt,name=enrollId" json:"enrollId,omitempty"`
-	EnrollToken string `protobuf:"bytes,2,opt,name=enrollToken" json:"enrollToken,omitempty"`
+	Signer      string `protobuf:"bytes,2,opt,name=signer" json:"signer,omitempty"`
 	FileContent string `protobuf:"bytes,3,opt,name=fileContent" json:"fileContent,omitempty"`
 	FileHash    string `protobuf:"bytes,4,opt,name=fileHash" json:"fileHash,omitempty"`
 	Signature   string `protobuf:"bytes,5,opt,name=signature" json:"signature,omitempty"`
@@ -206,60 +195,11 @@ func (s *NotarizationAPP) login(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	// Retrieve the REST data
-	url := getHTTPURL("registrar")
-	var loginSpec pb.Secret
-	loginSpec.EnrollId = loginRequest.EnrollID
-	loginSpec.EnrollSecret = loginRequest.EnrollSecret
-	reqBody, err := json.Marshal(loginSpec)
+	_, err = initCryptoClient(loginRequest.EnrollID, loginRequest.EnrollSecret)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get request error."})
-		logger.Errorf("Error: get request error: %v", err)
-
-		return
-	}
-	logger.Debugf("registrar request: %v - %v", url, string(reqBody))
-	response, err := performHTTPPost(url, reqBody)
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get data error."})
-		logger.Error("Error: get data error.")
-
-		return
-	}
-	logger.Debugf("registrar response: %v - %v", url, string(response))
-
-	var result restResult
-	err = json.Unmarshal(response, &result)
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Unmarshal error"})
-		logger.Error("Error: Unmarshal error.")
-
-		return
-	}
-	logger.Debugf("registrar: %v - %v", loginRequest.EnrollID, result.OK)
-
-	// Store client security context into a file
-	localStore := getRESTFilePath()
-
-	logger.Infof("Storing login token for user '%s'.\n", loginRequest.EnrollID)
-	err = ioutil.WriteFile(localStore+"loginToken_"+loginRequest.EnrollID, []byte(loginRequest.EnrollID), 0755)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		encoder.Encode(restResult{Error: fmt.Sprintf("Fatal error -- %s", err)})
-		panic(fmt.Errorf("Fatal error when storing client login token: %s\n", err))
-
-		return
-	}
-
-	// Register local
-	err = crypto.RegisterClient(loginRequest.EnrollID, nil, loginRequest.EnrollID, loginRequest.EnrollSecret)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		encoder.Encode(restResult{Error: fmt.Sprintf("Fatal error -- %s", err)})
-		panic(fmt.Errorf("Fatal error when storing client login token: %s\n", err))
+		encoder.Encode(restResult{Error: fmt.Sprintf("Login error: %v", err)})
+		logger.Errorf("Login error: %v", err)
 
 		return
 	}
@@ -267,11 +207,6 @@ func (s *NotarizationAPP) login(rw web.ResponseWriter, req *web.Request) {
 	rw.WriteHeader(http.StatusOK)
 	encoder.Encode(restResult{OK: fmt.Sprintf("Login successful for user '%s'.", loginRequest.EnrollID)})
 	logger.Infof("Login successful for user '%s'.\n", loginRequest.EnrollID)
-
-	// deploy the chaincode
-	if chaincodeName == "" {
-		deployChaincode(loginRequest.EnrollID)
-	}
 
 	return
 }
@@ -300,7 +235,6 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 
 		return
 	}
-	logger.Infof("signRequest: %v", signRequest)
 
 	// Check that the enrollId and enrollSecret are not left blank.
 	if (signRequest.EnrollID == "") || (signRequest.EnrollToken == "") {
@@ -333,67 +267,16 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	// retrieve the local file
-	localStore := getRESTFilePath()
-	token, err := ioutil.ReadFile(localStore + "loginToken_" + signRequest.EnrollID)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		encoder.Encode(restResult{Error: fmt.Sprintf("Fatal error -- %s", err)})
-		panic(fmt.Errorf("Fatal error when storing client login token: %s\n", err))
-	}
-	logger.Debugf("token: %v - %v", signRequest.EnrollToken, string(token))
-
-	// Retrieve the REST data
-	urlstr := getHTTPURL("registrar/" + signRequest.EnrollID + "/ecert")
-	logger.Infof("url request: %v", urlstr)
-	response, err := performHTTPGet(urlstr)
+	// Get the client
+	client, err := initCryptoClient(signRequest.EnrollID, "")
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get data error."})
-		logger.Error("Error: get data error.")
+		encoder.Encode(restResult{Error: fmt.Sprintf("Login error: %v", err)})
+		logger.Errorf("Login error: %v", err)
 
 		return
 	}
-	logger.Debugf("url response: %v - %v", urlstr, string(response))
-
-	var result certsResult
-	err = json.Unmarshal(response, &result)
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Unmarshal error"})
-		logger.Error("Error: Unmarshal error.")
-		return
-	}
-	logger.Debugf("registrar: %v - %v", signRequest.EnrollID, result.OK)
-
-	if len(result.OK) <= 0 {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Get ecert error."})
-		logger.Errorf("Get ecert error.")
-
-		return
-	}
-
-	certString, err := url.QueryUnescape(result.OK)
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "QueryUnescape error."})
-		logger.Error("Error: QueryUnescape error.")
-
-		return
-	}
-
-	// Init a client to sign
-	crypto.Init()
-
-	client, err := crypto.InitClient(signRequest.EnrollID, nil)
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "InitClient error."})
-		logger.Error("Error: InitClient error.")
-		return
-	}
-	handler, err := client.GetEnrollmentCertificateHandler()
+	enCertHandler, err := client.GetEnrollmentCertificateHandler()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "GetEnrollmentCertificateHandler error."})
@@ -402,7 +285,12 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	signature, err := handler.Sign(fileContent)
+	// Get signing certificate
+	eCertDER := enCertHandler.GetCertificate()
+	certString := string(eCertDER)
+
+	// Get the signature
+	signature, err := enCertHandler.Sign(fileContent)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: "Sign error."})
@@ -413,89 +301,87 @@ func (s *NotarizationAPP) sign(rw web.ResponseWriter, req *web.Request) {
 
 	signaturestr := base64.StdEncoding.EncodeToString(signature)
 
-	// TODO: no need to verify
-	// Verify
-	err = handler.Verify(signature, fileContent)
+	// Verify: no need to verify
+	err = enCertHandler.Verify(signature, fileContent)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Verify error."})
-		logger.Error("Error: Verify error.")
+		encoder.Encode(restResult{Error: "Sign error."})
+		logger.Error("Error: Sign error.")
 
 		return
 	}
 
-	filePath := localStore + "/" + "files"
-
 	location, _ := time.LoadLocation("Asia/Chongqing")
 	timestr := time.Now().In(location).String()
 
-	// invoke the chaincode
-	var signChaincode chaincodeRequest
-	var params pb.ChaincodeSpec
+	// Prepare spec and submit
 	args := []string{
 		"sign",
 		signRequest.EnrollID,
 		certString,
 		signRequest.FileName,
-		filePath,
-		signRequest.FileContent,
 		signRequest.FileHash,
 		signaturestr,
 		timestr}
 
-	params.Type = pb.ChaincodeSpec_GOLANG
-	params.ChaincodeID = &pb.ChaincodeID{
-		Name: chaincodeName,
+	chaincodeInput := &pb.ChaincodeInput{
+		Args: util.ToChaincodeArgs(args...),
 	}
-	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
-	params.SecureContext = signRequest.EnrollID
 
-	signChaincode.Jsonrpc = "2.0"
-	signChaincode.Method = "invoke"
-	signChaincode.Params = params
-	signChaincode.ID = timestr
+	spec := &pb.ChaincodeSpec{
+		Type:                 1,
+		ChaincodeID:          &pb.ChaincodeID{Name: chaincodeName},
+		CtorMsg:              chaincodeInput,
+		ConfidentialityLevel: confidentialityLevel,
+	}
 
-	reqBody, err := json.Marshal(signChaincode)
+	chaincodeInvocationSpec := &pb.ChaincodeInvocationSpec{ChaincodeSpec: spec}
+
+	// Get the Transaction cert
+	txCertHandler, err := client.GetTCertificateHandlerNext()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Marshal error."})
-		logger.Errorf("Error: Marshal error: %v", err)
+		encoder.Encode(restResult{Error: "Sign error."})
+		logger.Error("Error: Sign error.")
 
 		return
 	}
-
-	urlstr = getHTTPURL("chaincode")
-	logger.Debugf("url request: %v, %v", urlstr, string(reqBody))
-	response, err = performHTTPPost(urlstr, reqBody)
+	txHandler, err := txCertHandler.GetTransactionHandler()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get data error."})
-		logger.Error("Error: get data error.")
+		encoder.Encode(restResult{Error: "Sign error."})
+		logger.Error("Error: Sign error.")
 
 		return
 	}
-	logger.Debugf("url response: %v - %v", urlstr, string(response))
 
-	// parse result
-	var chaincodeResponse chaincodeResponse
-	err = json.Unmarshal(response, &chaincodeResponse)
+	// Now create the Transactions message and send to Peer.
+	transaction, err := txHandler.NewChaincodeExecute(chaincodeInvocationSpec, util.GenerateUUID())
 	if err != nil {
+		errstr := fmt.Sprintf("Sign error: %v", err)
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: err.Error()})
-		logger.Errorf("Verify Error: %s", err)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+	}
+
+	resp, err := processTransaction(transaction)
+	if err != nil {
+		errstr := fmt.Sprintf("Sign error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+
+		return
+	}
+	if resp.Status != 200 {
+		errstr := fmt.Sprintf("Sign error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
 
 		return
 	}
 
-	if chaincodeResponse.Result.Status != "OK" {
-		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Sign file error."})
-		logger.Errorf("Sign file error.")
-
-		return
-	}
-
-	// return
 	rw.WriteHeader(http.StatusOK)
 	encoder.Encode(restResult{OK: fmt.Sprintf("%s", signaturestr)})
 	logger.Infof("Signature: '%s'.\n", signaturestr)
@@ -527,13 +413,12 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 
 		return
 	}
-	logger.Infof("verifyRequest: %v", verifyRequest)
 
-	// Check that the enrollId and enrollSecret are not left blank.
-	if (verifyRequest.EnrollID == "") || (verifyRequest.EnrollToken == "") {
+	// Check that the enrollId and Signer are not left blank.
+	if (verifyRequest.EnrollID == "") || (verifyRequest.Signer == "") {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "enrollId and enrollSecret may not be blank."})
-		logger.Error("Error: enrollId and enrollSecret may not be blank.")
+		encoder.Encode(restResult{Error: "Signer may not be blank."})
+		logger.Error("Error: Signer may not be blank.")
 
 		return
 	}
@@ -542,8 +427,8 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 	fileContent, err := base64.StdEncoding.DecodeString(verifyRequest.FileContent)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "enrollId and enrollSecret may not be blank."})
-		logger.Error("Error: enrollId and enrollSecret may not be blank.")
+		encoder.Encode(restResult{Error: "fileContent may not be blank."})
+		logger.Error("Error: fileContent may not be blank.")
 
 		return
 	}
@@ -557,72 +442,95 @@ func (s *NotarizationAPP) verify(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	// invoke the chaincode
-	location, _ := time.LoadLocation("Asia/Chongqing")
-	timestr := time.Now().In(location).String()
-
-	var verifyChaincode chaincodeRequest
-	var params pb.ChaincodeSpec
 	args := []string{
 		"verify",
-		verifyRequest.EnrollID,
+		verifyRequest.Signer,
 		verifyRequest.FileContent,
 		verifyRequest.FileHash,
 		verifyRequest.Signature}
 
-	params.Type = pb.ChaincodeSpec_GOLANG
-	params.ChaincodeID = &pb.ChaincodeID{
-		Name: chaincodeName,
+	chaincodeInput := &pb.ChaincodeInput{
+		Args: util.ToChaincodeArgs(args...),
 	}
-	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
-	params.SecureContext = verifyRequest.EnrollID
 
-	verifyChaincode.Jsonrpc = "2.0"
-	verifyChaincode.Method = "query"
-	verifyChaincode.Params = params
-	verifyChaincode.ID = timestr
+	spec := &pb.ChaincodeSpec{
+		Type:                 1,
+		ChaincodeID:          &pb.ChaincodeID{Name: chaincodeName},
+		CtorMsg:              chaincodeInput,
+		ConfidentialityLevel: confidentialityLevel,
+	}
 
-	reqBody, err := json.Marshal(verifyChaincode)
+	chaincodeInvocationSpec := &pb.ChaincodeInvocationSpec{ChaincodeSpec: spec}
+
+	// Get client
+	client, err := initCryptoClient(verifyRequest.EnrollID, "")
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Marshal error."})
-		logger.Errorf("Error: Marshal error: %v", err)
+		encoder.Encode(restResult{Error: fmt.Sprintf("Login error: %v", err)})
+		logger.Errorf("Login error: %v", err)
 
 		return
 	}
 
-	urlstr := getHTTPURL("chaincode")
-	logger.Debugf("url request: %v, %v", urlstr, string(reqBody))
-	response, err := performHTTPPost(urlstr, reqBody)
+	// Get the Transaction cert
+	txCertHandler, err := client.GetTCertificateHandlerNext()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get data error."})
-		logger.Error("Error: get data error.")
+		encoder.Encode(restResult{Error: "Verify error."})
+		logger.Error("Error: Verify error.")
 
 		return
 	}
-	logger.Debugf("url response: %v - %v", urlstr, string(response))
-
-	// parse result
-	var chaincodeResponse chaincodeResponse
-	err = json.Unmarshal(response, &chaincodeResponse)
+	txHandler, err := txCertHandler.GetTransactionHandler()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: err.Error()})
-		logger.Errorf("Verify Error: %s", err)
+		encoder.Encode(restResult{Error: "Verify error."})
+		logger.Error("Error: Verify error.")
 
 		return
 	}
 
-	if chaincodeResponse.Result.Status != "OK" {
+	// Now create the Transactions message and send to Peer.
+	transaction, err := txHandler.NewChaincodeQuery(chaincodeInvocationSpec, util.GenerateUUID())
+	if err != nil {
+		errstr := fmt.Sprintf("Verify error: %v", err)
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Verify signature error."})
-		logger.Errorf("Verify signature error.")
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+	}
+
+	resp, err := processTransaction(transaction)
+	if err != nil {
+		errstr := fmt.Sprintf("Verify error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+
+		return
+	}
+	if resp.Status != 200 {
+		errstr := fmt.Sprintf("Verify error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
 
 		return
 	}
 
-	if chaincodeResponse.Result.Message == verifyRequest.Signature {
+	var res []byte
+	if confidentialityOn {
+		// Decrypt result
+		res, err = client.DecryptQueryResult(transaction, resp.Msg)
+		if err != nil {
+			logger.Errorf("Failed decrypting result [%s]", err)
+			return
+		}
+	} else {
+		res = resp.Msg
+	}
+
+	logger.Infof("Signature verify result: %v", string(res))
+	if string(res) == verifyRequest.Signature {
 		rw.WriteHeader(http.StatusOK)
 		encoder.Encode(restResult{OK: fmt.Sprintf("Signature verified.")})
 		logger.Infof("Signature verified.\n")
@@ -669,64 +577,74 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 		return
 	}
 
-	// invoke the chaincode
-	location, _ := time.LoadLocation("Asia/Chongqing")
-	timestr := time.Now().In(location).String()
-
-	var signatureChaincode chaincodeRequest
-	var params pb.ChaincodeSpec
 	args := []string{
 		"getSignatures",
 		signatureRequest.EnrollID}
 
-	params.Type = pb.ChaincodeSpec_GOLANG
-	params.ChaincodeID = &pb.ChaincodeID{
-		Name: chaincodeName,
+	chaincodeInput := &pb.ChaincodeInput{
+		Args: util.ToChaincodeArgs(args...),
 	}
-	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
-	params.SecureContext = signatureRequest.EnrollID
 
-	signatureChaincode.Jsonrpc = "2.0"
-	signatureChaincode.Method = "query"
-	signatureChaincode.Params = params
-	signatureChaincode.ID = timestr
+	spec := &pb.ChaincodeSpec{
+		Type:                 1,
+		ChaincodeID:          &pb.ChaincodeID{Name: chaincodeName},
+		CtorMsg:              chaincodeInput,
+		ConfidentialityLevel: confidentialityLevel,
+	}
 
-	reqBody, err := json.Marshal(signatureChaincode)
+	chaincodeInvocationSpec := &pb.ChaincodeInvocationSpec{ChaincodeSpec: spec}
+
+	// Get client
+	client, err := initCryptoClient(signatureRequest.EnrollID, "")
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "Marshal error."})
-		logger.Errorf("Error: Marshal error: %v", err)
+		encoder.Encode(restResult{Error: fmt.Sprintf("Login error: %v", err)})
+		logger.Errorf("Login error: %v", err)
 
 		return
 	}
 
-	urlstr := getHTTPURL("chaincode")
-	logger.Infof("url request: %v, %v", urlstr, string(reqBody))
-	response, err := performHTTPPost(urlstr, reqBody)
+	// Get the Transaction cert
+	txCertHandler, err := client.GetTCertificateHandlerNext()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get data error."})
-		logger.Error("Error: get data error.")
+		encoder.Encode(restResult{Error: "getSignatures error."})
+		logger.Error("Error: getSignatures error.")
 
 		return
 	}
-	logger.Infof("url response: %v - %v", urlstr, string(response))
-
-	// parse result
-	var chaincodeResponse chaincodeResponse
-	err = json.Unmarshal(response, &chaincodeResponse)
+	txHandler, err := txCertHandler.GetTransactionHandler()
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: err.Error()})
-		logger.Errorf("chaincode Error: %s", err)
+		encoder.Encode(restResult{Error: "getSignatures error."})
+		logger.Error("Error: getSignatures error.")
 
 		return
 	}
 
-	if chaincodeResponse.Result.Status != "OK" {
+	// Now create the Transactions message and send to Peer.
+	transaction, err := txHandler.NewChaincodeQuery(chaincodeInvocationSpec, util.GenerateUUID())
+	if err != nil {
+		errstr := fmt.Sprintf("getSignatures error: %v", err)
 		rw.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(restResult{Error: "get signature none"})
-		logger.Errorf("get signature none")
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+	}
+
+	resp, err := processTransaction(transaction)
+	if err != nil {
+		errstr := fmt.Sprintf("getSignatures error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
+
+		return
+	}
+	if resp.Status != 200 {
+		errstr := fmt.Sprintf("getSignatures error: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(restResult{Error: errstr})
+		logger.Error(errstr)
 
 		return
 	}
@@ -734,8 +652,19 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 	var signatureResponse signatureResponse
 	signatureResponse.OK = fmt.Sprintf("all signatures signed by %v", signatureRequest.EnrollID)
 
-	signatures := []byte(chaincodeResponse.Result.Message)
-	err = json.Unmarshal(signatures, &signatureResponse.Signatures)
+	var res []byte
+	if confidentialityOn {
+		// Decrypt result
+		res, err = client.DecryptQueryResult(transaction, resp.Msg)
+		if err != nil {
+			logger.Errorf("Failed decrypting result [%s]", err)
+			return
+		}
+	} else {
+		res = resp.Msg
+	}
+
+	err = json.Unmarshal(res, &signatureResponse.Signatures)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(restResult{Error: err.Error()})
@@ -747,14 +676,12 @@ func (s *NotarizationAPP) getSignatures(rw web.ResponseWriter, req *web.Request)
 	rw.WriteHeader(http.StatusOK)
 	encoder.Encode(signatureResponse)
 	logger.Infof("Get all signatures: %v.\n", signatureRequest.EnrollID)
-
-	return
 }
 
-// --------------- common func --------------
-
-func deployChaincode(secureContext string) {
-	var chaincodePath = os.Getenv("APP_APP_NOTARIZATION_CHAINCODEPATH")
+// --------------- common function --------------
+func deployChaincode(string) error {
+	// Get chaincode path
+	chaincodePath := os.Getenv("CORE_APP_NOTARIZATION_CHAINCODEPATH")
 	if chaincodePath == "" {
 		chaincodePath = viper.GetString("app.notarization.chaincodePath")
 		if chaincodePath == "" {
@@ -762,143 +689,74 @@ func deployChaincode(secureContext string) {
 		}
 	}
 
-	if secureContext == "" {
-		deployer := os.Getenv("APP_APP_NOTARIZATION_DEPLOYER")
-		if deployer == "" {
-			deployer = viper.GetString("app.notarization.deployer")
-			if deployer == "" {
-				deployer = "lukas"
-			}
+	// Get deployer
+	deployerID := os.Getenv("CORE_APP_NOTARIZATION_DEPLOYER")
+	if deployerID == "" {
+		deployerID = viper.GetString("app.notarization.deployerID")
+		if deployerID == "" {
+			deployerID = "lukas"
 		}
+	}
 
-		deployerSecret := os.Getenv("APP_APP_NOTARIZATION_DEPLOYERSECRET")
+	deployerSecret := os.Getenv("A_APP_NOTARIZATION_DEPLOYERSECRET")
+	if deployerSecret == "" {
+		deployerSecret = viper.GetString("app.notarization.deployerSecret")
 		if deployerSecret == "" {
-			deployerSecret = viper.GetString("app.notarization.deployerSecret")
-			if deployerSecret == "" {
-				deployerSecret = "NPKYL39uKbkj"
-			}
+			deployerSecret = "NPKYL39uKbkj"
 		}
-
-		// Retrieve the REST data
-		url := getHTTPURL("registrar")
-		var loginSpec pb.Secret
-		loginSpec.EnrollId = deployer
-		loginSpec.EnrollSecret = deployerSecret
-		reqBody, err := json.Marshal(loginSpec)
-		if err != nil {
-			logger.Errorf("Error: get request error: %v", err)
-
-			return
-		}
-		logger.Debugf("registrar request: %v - %v", url, string(reqBody))
-		response, err := performHTTPPost(url, reqBody)
-		if err != nil {
-			logger.Error("Error: get data error.")
-
-			return
-		}
-		logger.Debugf("registrar response: %v - %v", url, string(response))
-
-		var result restResult
-		err = json.Unmarshal(response, &result)
-		if err != nil {
-			logger.Error("Error: Unmarshal error.")
-
-			return
-		}
-		logger.Debugf("registrar: %v - %v", deployer, result.OK)
-
-		// Store client security context into a file
-		localStore := getRESTFilePath()
-
-		logger.Infof("Storing login token for user '%s'.\n", deployer)
-		err = ioutil.WriteFile(localStore+"loginToken_"+deployer, []byte(deployer), 0755)
-		if err != nil {
-			panic(fmt.Errorf("Fatal error when storing client login token: %s\n", err))
-
-			return
-		}
-
-		secureContext = deployer
 	}
 
-	// deploy chaincode
-	location, _ := time.LoadLocation("Asia/Chongqing")
-	timestr := time.Now().In(location).String()
-
-	var deployhaincode chaincodeRequest
-	var params pb.ChaincodeSpec
-	args := []string{"init"}
-
-	params.Type = pb.ChaincodeSpec_GOLANG
-	params.ChaincodeID = &pb.ChaincodeID{
-		Path: chaincodePath,
-	}
-	params.CtorMsg = &pb.ChaincodeInput{Args: util.ToChaincodeArgs(args...)}
-	params.SecureContext = secureContext
-
-	deployhaincode.Jsonrpc = "2.0"
-	deployhaincode.Method = "deploy"
-	deployhaincode.Params = params
-	deployhaincode.ID = timestr
-
-	reqBody, err := json.Marshal(deployhaincode)
+	// init deployer
+	deployerClient, err := initCryptoClient(deployerID, deployerSecret)
 	if err != nil {
-		logger.Errorf("Error: Marshal error: %v", err)
-
-		return
+		logger.Debugf("Failed deploying [%s]", err)
+		return err
 	}
 
-	urlstr := getHTTPURL("chaincode")
-	logger.Infof("url request: %v, %v", urlstr, string(reqBody))
-	response, err := performHTTPPost(urlstr, reqBody)
+	// Prepare the spec. The metadata includes the identity of the administrator
+	spec := &pb.ChaincodeSpec{
+		Type:                 1,
+		ChaincodeID:          &pb.ChaincodeID{Path: chaincodePath},
+		CtorMsg:              &pb.ChaincodeInput{Args: util.ToChaincodeArgs("init")},
+		ConfidentialityLevel: confidentialityLevel,
+	}
+
+	// First build the deployment spec
+	cds, err := getChaincodeBytes(spec)
 	if err != nil {
-		logger.Error("Error: get data error.")
-
-		return
+		return fmt.Errorf("Error getting deployment spec: %s ", err)
 	}
-	logger.Infof("url response: %v - %v", urlstr, string(response))
 
-	// parse result
-	var chaincodeResponse chaincodeResponse
-	err = json.Unmarshal(response, &chaincodeResponse)
+	logger.Infof("deployChaincode: %v", cds.ChaincodeSpec)
+
+	// Now create the Transactions message and send to Peer.
+	transaction, err := deployerClient.NewChaincodeDeployTransaction(cds, cds.ChaincodeSpec.ChaincodeID.Name)
 	if err != nil {
-		logger.Errorf("chaincode Error: %v", err)
-
-		return
+		return fmt.Errorf("Error deploying chaincode: %s ", err)
 	}
 
-	// cache the chaincodeName
-	if chaincodeResponse.Result.Status != "OK" {
-		logger.Errorf("chaincode Status Error: %v", chaincodeResponse.Result.Status)
+	resp, err := processTransaction(transaction)
 
-		return
-	}
-	chaincodeName = chaincodeResponse.Result.Message
-	logger.Infof("deploy chaincode: %v", chaincodeName)
-}
+	logger.Debugf("resp [%s]", resp.String())
 
-// getRESTFilePath is a helper function to retrieve the local storage directory
-// of client login tokens.
-func getRESTFilePath() string {
-	localStore := viper.GetString("peer.fileSystemPath")
-	if !strings.HasSuffix(localStore, "/") {
-		localStore = localStore + "/"
-	}
-	localStore = localStore + "client/"
-	return localStore
+	chaincodeName = cds.ChaincodeSpec.ChaincodeID.Name
+	logger.Debugf("ChaincodeName [%s]", chaincodeName)
+
+	return nil
 }
 
 // StartNotarizationServer initializes the REST service and adds the required
 // middleware and routes.
 func startNotarizationServer() {
 	// Initialize the REST service object
-	logger.Infof("Initializing the REST service on %s, TLS is %s.", viper.GetString("app.address"), (map[bool]string{true: "enabled", false: "disabled"})[comm.TLSEnabled()])
+	tlsEnabled := viper.GetBool("app.tls.enabled")
+
+	logger.Infof("Initializing the REST service on %s, TLS is %s.", viper.GetString("app.address"), (map[bool]string{true: "enabled", false: "disabled"})[tlsEnabled])
 
 	router := buildNotarizationRouter()
 
 	// Start server
-	if comm.TLSEnabled() {
+	if tlsEnabled {
 		err := http.ListenAndServeTLS(viper.GetString("app.address"), viper.GetString("app.tls.cert.file"), viper.GetString("app.tls.key.file"), router)
 		if err != nil {
 			logger.Errorf("ListenAndServeTLS: %s", err)
@@ -913,9 +771,6 @@ func startNotarizationServer() {
 
 // start serve
 func serve(args []string) error {
-	// Deploy the chaincode
-	deployChaincode("")
-
 	// Create and register the REST service if configured
 	startNotarizationServer()
 

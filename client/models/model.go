@@ -40,7 +40,7 @@ type signRequest struct {
 // verifyRequest is a object to verify a signature
 type verifyRequest struct {
 	EnrollID    string `protobuf:"bytes,1,opt,name=enrollId" json:"enrollId,omitempty"`
-	EnrollToken string `protobuf:"bytes,2,opt,name=enrollToken" json:"enrollToken,omitempty"`
+	Signer      string `protobuf:"bytes,2,opt,name=signer" json:"signer,omitempty"`
 	FileContent string `protobuf:"bytes,3,opt,name=fileContent" json:"fileContent,omitempty"`
 	FileHash    string `protobuf:"bytes,4,opt,name=fileHash" json:"fileHash,omitempty"`
 	Signature   string `protobuf:"bytes,5,opt,name=signature" json:"signature,omitempty"`
@@ -124,10 +124,6 @@ func GetSignatures(enrollID, enrollToken string) *SignatureResponse {
 		return nil
 	}
 
-	// if result.OK == "" {
-	// 	return nil
-	// }
-
 	return &result
 }
 
@@ -171,14 +167,14 @@ func Sign(enrollID, enrollToken, fileName, fileContent, fileHash string) string 
 
 // Verify verify a signature
 // enrollID: enrollID
-// enrollToken: enrollToken
+// signer: signer
 // fileContent: base64 of file content
 // fileHash: sha256 of file content
 // signature: signature of file
-func Verify(enrollID, enrollToken, fileContent, fileHash, signature string) bool {
+func Verify(enrollID, signer, fileContent, fileHash, signature string) bool {
 	var verifyRequest verifyRequest
 	verifyRequest.EnrollID = enrollID
-	verifyRequest.EnrollToken = enrollToken
+	verifyRequest.Signer = signer
 	verifyRequest.FileContent = fileContent
 	verifyRequest.FileHash = fileHash
 	verifyRequest.Signature = signature
