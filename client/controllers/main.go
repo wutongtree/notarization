@@ -9,6 +9,9 @@ import (
 	"github.com/wutongtree/notarization/client/models"
 )
 
+// const
+const itemsPerPage = 5
+
 // MainController main controller
 type MainController struct {
 	baseController
@@ -23,16 +26,6 @@ func (c *MainController) Get() {
 
 // GetSignatures get signatures
 func (c *MainController) GetSignatures() {
-	page, err := c.GetInt("p")
-	if err != nil {
-		fmt.Printf("page: %d\n", page)
-		page = 1
-	}
-
-	pageoffset, err := beego.AppConfig.Int("pageoffset")
-	if err != nil {
-		pageoffset = 5
-	}
 
 	c.Data["Website"] = Website
 	c.Data["Email"] = Email
@@ -56,17 +49,39 @@ func (c *MainController) GetSignatures() {
 		c.Redirect("/", 302)
 		return
 	}
-
-	signatures := models.GetSignatures(uname, token)
 	c.Data["Username"] = uname
-	if signatures == nil {
-		var result models.SignatureResponse
-		c.Data["Signatures"] = result
-	} else {
-		c.Data["Signatures"] = *signatures
+
+	// page
+	page, err := c.GetInt("p")
+	if err != nil {
+		fmt.Printf("page: %d\n", page)
+		page = 1
 	}
 
-	countall := len(signatures.Signatures)
+	pageoffset, err := beego.AppConfig.Int("pageoffset")
+	if err != nil {
+		pageoffset = itemsPerPage
+	}
+
+	signatures := models.GetSignatures(uname, token)
+	var result models.SignatureResponse
+	countall := 0
+
+	if signatures != nil {
+		result.OK = signatures.OK
+		result.Error = signatures.Error
+
+		countall = len(signatures.Signatures)
+
+		if page*pageoffset < countall {
+			result.Signatures = signatures.Signatures[(page-1)*pageoffset : page*pageoffset]
+		} else {
+			result.Signatures = signatures.Signatures[(page-1)*pageoffset-1 : countall-1]
+		}
+		c.Data["Signatures"] = *signatures
+	}
+	c.Data["Signatures"] = result
+
 	paginator := pagination.SetPaginator(c.Ctx, pageoffset, int64(countall))
 	c.Data["paginator"] = paginator
 }
