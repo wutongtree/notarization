@@ -15,7 +15,6 @@ const (
 	columnAccountID     = "AccountID"
 	columnCertificate   = "Certificate"
 	columnFileName      = "FileName"
-	columnFilePath      = "FilePath"
 	columnFileHash      = "FileHash"
 	columnFileSignature = "FileSignature"
 	columnTimestamp     = "Timestamp"
@@ -49,17 +48,14 @@ func (t *signatureHandler) createTable(stub *shim.ChaincodeStub) error {
 		&shim.ColumnDefinition{Name: columnFileHash, Type: shim.ColumnDefinition_STRING, Key: true},
 		&shim.ColumnDefinition{Name: columnCertificate, Type: shim.ColumnDefinition_STRING, Key: false},
 		&shim.ColumnDefinition{Name: columnFileName, Type: shim.ColumnDefinition_STRING, Key: false},
-		&shim.ColumnDefinition{Name: columnFilePath, Type: shim.ColumnDefinition_STRING, Key: false},
 		&shim.ColumnDefinition{Name: columnTimestamp, Type: shim.ColumnDefinition_STRING, Key: false},
 	})
-
 }
 
 // submitSignature submit signature
 // accountID: account ID to be allocated with requested amount
 // certficate: pem format of certficate
 // fileName: file name
-// filePath: file path
 // fileHash: file hash
 // fileSignature: file signature
 // timestamp: timestamp
@@ -67,12 +63,11 @@ func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
 	accountID string,
 	certficate string,
 	fileName string,
-	filePath string,
 	fileHash string,
 	fileSignature []byte,
 	timestamp string) error {
 
-	myLogger.Debugf("insert accountID=%v certficate=%v fileName=%v filePath=%v fileHash=%v fileSignature=%v timestamp=%v", accountID, certficate, fileName, filePath, fileHash, fileSignature, timestamp)
+	logger.Debugf("insert accountID=%v certficate=%v fileName=%v fileHash=%v fileSignature=%v timestamp=%v", accountID, certficate, fileName, fileHash, fileSignature, timestamp)
 
 	//insert a new row for this account ID that includes contact information and balance
 	ok, err := stub.InsertRow(tableColumn, shim.Row{
@@ -82,13 +77,12 @@ func (t *signatureHandler) submitSignature(stub *shim.ChaincodeStub,
 			&shim.Column{Value: &shim.Column_String_{String_: fileHash}},
 			&shim.Column{Value: &shim.Column_String_{String_: certficate}},
 			&shim.Column{Value: &shim.Column_String_{String_: fileName}},
-			&shim.Column{Value: &shim.Column_String_{String_: filePath}},
 			&shim.Column{Value: &shim.Column_String_{String_: timestamp}}},
 	})
 
 	// you can only assign balances to new account IDs
 	if !ok && err == nil {
-		myLogger.Errorf("submitSignature: system error %v", err)
+		logger.Errorf("submitSignature: system error %v", err)
 		return errors.New("Fiel was already signed.")
 	}
 
@@ -137,7 +131,7 @@ func (t *signatureHandler) getCertificate(stub *shim.ChaincodeStub, accountID st
 	}
 
 	if len(row.Columns) < 3 {
-		myLogger.Errorf("getCertificate rows: %v", len(row.Columns))
+		logger.Errorf("getCertificate rows: %v", len(row.Columns))
 		return "", nil
 	}
 
@@ -174,7 +168,7 @@ func (t *signatureHandler) getSignatures(stub *shim.ChaincodeStub, accountID str
 		signatureEntity.FileSignature = base64.StdEncoding.EncodeToString(row.Columns[1].GetBytes())
 		signatureEntity.FileHash = row.Columns[2].GetString_()
 		signatureEntity.FileName = row.Columns[4].GetString_()
-		signatureEntity.Timestamp = row.Columns[6].GetString_()
+		signatureEntity.Timestamp = row.Columns[5].GetString_()
 
 		signatures = append(signatures, signatureEntity)
 	}
