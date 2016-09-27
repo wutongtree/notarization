@@ -53,8 +53,7 @@ func (c *MainController) GetSignatures() {
 
 	// page
 	page, err := c.GetInt("p")
-	if err != nil {
-		fmt.Printf("page: %d\n", page)
+	if err != nil || page < 1 {
 		page = 1
 	}
 
@@ -62,6 +61,7 @@ func (c *MainController) GetSignatures() {
 	if err != nil {
 		pageoffset = itemsPerPage
 	}
+	fmt.Printf("page=%d pageoffset=%v\n", page, pageoffset)
 
 	signatures := models.GetSignatures(uname, token)
 	var result models.SignatureResponse
@@ -73,10 +73,12 @@ func (c *MainController) GetSignatures() {
 
 		countall = len(signatures.Signatures)
 
-		if page*pageoffset < countall {
-			result.Signatures = signatures.Signatures[(page-1)*pageoffset : page*pageoffset]
-		} else {
-			result.Signatures = signatures.Signatures[(page-1)*pageoffset-1 : countall-1]
+		if countall > 0 {
+			if page*pageoffset < countall {
+				result.Signatures = signatures.Signatures[(page-1)*pageoffset : page*pageoffset]
+			} else {
+				result.Signatures = signatures.Signatures[(page-1)*pageoffset : countall]
+			}
 		}
 		c.Data["Signatures"] = *signatures
 	}
