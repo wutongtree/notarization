@@ -23,7 +23,7 @@ var (
 	confidentialityOn    bool
 	confidentialityLevel pb.ConfidentialityLevel
 
-	// NVP related objects
+	// peer related objects
 	peerClientConn *grpc.ClientConn
 	serverClient   pb.PeerClient
 
@@ -70,11 +70,11 @@ func main() {
 	// Enable fabric 'confidentiality'
 	confidentiality(true)
 
-	// Initialize a non-validating peer whose role is to submit
+	// Initialize a peer connect to submit
 	// transactions to the fabric network.
 	// A 'core.yaml' file is assumed to be available in the working directory.
-	if err := initNVP(); err != nil {
-		logger.Debugf("Failed initiliazing NVP [%s]", err)
+	if err := initPeerClient(); err != nil {
+		logger.Debugf("Failed initiliazing PeerClient [%s]", err)
 		os.Exit(-1)
 	}
 

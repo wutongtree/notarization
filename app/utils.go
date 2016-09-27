@@ -24,10 +24,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func initNVP() (err error) {
+func initPeerClient() (err error) {
 	config.SetupTestConfig(".")
-	viper.Set("ledger.blockchain.deploy-system-chaincode", "false")
-	viper.Set("peer.validator.validity-period.verification", "false")
 
 	peerClientConn, err = peer.NewPeerClientConnection()
 	if err != nil {
