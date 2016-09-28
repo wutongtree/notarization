@@ -54,7 +54,24 @@ func initCryptoClient(enrollID, enrollPWD string) (crypto.Client, error) {
 }
 
 func processTransaction(tx *pb.Transaction) (*pb.Response, error) {
-	return serverClient.ProcessTransaction(context.Background(), tx)
+	resp, err := serverClient.ProcessTransaction(context.Background(), tx)
+
+	if err != nil {
+		for i := 0; i < retryCount; i++ {
+			err = initPeerClient()
+			if err != nil {
+				logger.Errorf("processTransaction[%v]: %v", i, err)
+				continue
+			}
+			resp, err = serverClient.ProcessTransaction(context.Background(), tx)
+			if err == nil {
+				logger.Errorf("processTransaction[%v]: successful", i)
+				return resp, err
+			}
+		}
+	}
+
+	return resp, err
 }
 
 func confidentiality(enabled bool) {

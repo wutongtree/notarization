@@ -18,6 +18,9 @@ import (
 	logging "github.com/op/go-logging"
 )
 
+// retry count for connecting to peers
+const retryCount = 3
+
 var (
 	// Security
 	confidentialityOn    bool
