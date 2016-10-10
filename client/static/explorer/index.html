@@ -2,9 +2,9 @@
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-	
+
 	http://www.apache.org/licenses/LICENSE-2.0
-	
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,16 +13,16 @@ limitations under the License.-->
 <!doctype html>
 <html lang="en" ng-app=explorer>
 	<header>
-		<script src = /static/explorer/angular.js></script>
-     		<script src = /static/explorer/hyperledger.js></script>
-     		<script src = /static/explorer/scripts.js></script>
-     		<script src="http://d3js.org/d3.v2.js"></script>
-     		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
-     		<link href="https://fonts.googleapis.com/css?family=Anton" rel="stylesheet"> 
+		<script src = "/static/explorer/angular.js"></script>
+		<script src = "/static/explorer/hyperledger.js"></script>
+		<script src = "/static/explorer/scripts.js"></script>
+		<script src="http://d3js.org/d3.v2.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Anton" rel="stylesheet">
 		<link rel="stylesheet" type="text/css" href="/static/explorer/style.css">
 		<title> Hyperledger Explorer </title>
 		<meta charset="utf-8">
-	  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 		 <div id="header" class="Header" ng-controller="HEADER">
 	    		<h1>Hyperledger Explorer </h1>
@@ -33,10 +33,10 @@ limitations under the License.-->
 
 	<div  class="menu-trigger" ng-controller="TRIGGER" >
 		<button class="menu-button" id="button" ng-click="activate()"> Menu </button>
-	</div>	
+	</div>
 
 	<div id="navigation" class="Navigation" ng-controller="NAVIGATION">
-		<u1> 
+		<u1>
 			<li><a href="#A" onClick="hide()" >Recent Blocks</a></li>
 			<li><a href="#B" onClick="hide()" >Current State</a></li>
 			<li><a href="#C" onClick="hide()" >Search</a></li>
@@ -49,12 +49,12 @@ limitations under the License.-->
 	<div id="block" class="Block" ng-controller="BLOCKS">
 		<a name="A"></a>
 			<div class="Block_title">
-				<h1><b>Recent Blocks </b></h1>	
+				<h1><b>Recent Blocks </b></h1>
 			</div>
 
-			<div class="Loading_symbol" ng-show="loader.loading">Loading...</div>	
+			<div class="Loading_symbol" ng-show="loader.loading">Loading...</div>
 				<table>
-					<thead>	
+					<thead>
 						<tr>
 							<th> Block# </th>
 							<th> State Hash </th>
@@ -69,7 +69,7 @@ limitations under the License.-->
 							<td data-label="Previous Hash">{{ info[$index].previousBlockHash | limitTo: 17}}...</td>
 							<td data-label="Log">
 
-							<button ng-click="Update_selected_block($index)"> View </button>
+							<button class="btn_ignored" ng-click="Update_selected_block($index)"> View </button>
 							<form action='#openModal2' id="change2" style="display:none;>
 								 <input type="submit" value="Details">
 							</form>
@@ -79,7 +79,7 @@ limitations under the License.-->
 									<h2 style="text-align:center"> Extra Non Hash Data</h2>
 										<p> <b> Date: </b> {{ info[selected].nonHashData.localLedgerCommitTimestamp.date }} </p>
 										<p> <b> Seconds: </b> {{ info[selected].nonHashData.localLedgerCommitTimestamp.seconds}}	</p>
-										<p> <b> Nanos: </b> {{ info[selected].nonHashData.localLedgerCommitTimestamp.nanos}}	</p>
+										<p> <b> Nanos: </b> {{ info[selected].nonHashData.localLedgerCommitTimestamp.nanos}}    	</p>
 										<p> <b> Consensus Metadata: </b> {{ info[selected].consensusMetadata}} </p>
 										<p> <b> Transaction Results: </b> {{ info[selected].nonHashData.transactionResults}}	</p>
 										<hr>
@@ -101,9 +101,9 @@ limitations under the License.-->
 											<p> <b>Nonce:</b> {{ transactions.nonce }} </p>
 											<p> <b>Cert:</b> {{ transactions.cert }} </p>
 											<p> <b>Signature:</b> {{ transactions.signature }} </p>
-											<hr>										
-										</div>			
-		 						</div>
+											<hr>
+										</div>
+								</div>
 							</div>
 						</tr>
 					</tbody>
@@ -114,7 +114,7 @@ limitations under the License.-->
 		<a name="B"></a>
 
 		<div  class="Block_title">
-			<h1> <b> Current State of the BlockChain </b> </h1>	
+			<h1> <b> Current State of the BlockChain </b> </h1>
 		</div>
 			<div class="Current_info">
 				<text> <b>Height: </b> {{ info.height }} </text>
@@ -129,13 +129,13 @@ limitations under the License.-->
 				<h1>Search</h1>
 			</div>
 			<div class="Search_top">
-				<input type = "text" ng-model="response" placeholder= "UUID/Block number">	
+				<input type = "text" ng-model="response" placeholder= "UUID/Block number">
 				<button id="flip" ng-click="search()"> Search </button>
 				<button ng-click="clear()"> Clear </button>
 			</div>
-			<div id="panel" class="Panel" style="display:none">			 	
+			<div id="panel" class="Panel" style="display:none">
 				<div class="Results">
-					<p> {{ message }} </p>	
+					<p> {{ message }} </p>
 					<p> {{ text1 }} </p>
 					<p> {{ text2 }} </p>
 					<p> {{ text3 }} </p>
@@ -148,7 +148,7 @@ limitations under the License.-->
 					<input class="Submit" type="submit" value="View Transaction Details">
 				</form>
 			</div>
-			
+
 			<div id="openModal" class="modalDialog" style="font-size: 120%; text-align:left;">
 				<div>
 					<a href="#close" title="Close" class="close">X</a>
@@ -166,8 +166,8 @@ limitations under the License.-->
 							<p> <b>Nonce:</b> {{ transactions.nonce }} </p>
 							<p> <b>Cert:</b> {{ info.transactions.cert }} </p>
 							<p> <b>Signature:</b> {{ info.transactions.signature }} </p>
-							<hr>										
-						</div>			
+							<hr>
+						</div>
 				</div>
 			</div>
 	</div>
@@ -180,8 +180,8 @@ limitations under the License.-->
 		</div>
 			<p style="padding-left:20px;">Number of Peers connected to Network:  {{ info.peers.length}}</p>
 			<div class="Network_child">
-				<table>												
-					<thead>	
+				<table>
+					<thead>
 						<tr>
 							<th> Name </th>
 							<th> Address</th>
@@ -209,8 +209,8 @@ limitations under the License.-->
 		</div>
 				<div id="performance" class="Performance">
 					<div id="top" class="Top">
-						<h2> Performance </h2>	
-					</div>	
+						<h2> Performance </h2>
+					</div>
 						<div id="latency" class="Latency">
 							<h3> Average Latency </h3>
 							<hr>
@@ -233,10 +233,10 @@ limitations under the License.-->
 					<div id="top" class="Top">
 						<h2> Chaincode </h2>
 					</div>
-						<p style="padding-left:5%"> Transaction <b>TYPE </b> 
+						<p style="padding-left:5%"> Transaction <b>TYPE </b>
 						    <select name="mySelect" id="mySelect"
 						      ng-options="option.name for option in data.Options track by option.id"
-						      ng-model="data.selected"></select> 
+						      ng-model="data.selected"></select>
 						      	<bars-chart chart-data="data_1" ></bars-chart>
 						</p>
 
@@ -245,11 +245,11 @@ limitations under the License.-->
 				<div id="volume" class="Volume">
 					<div id="top" class="Top">
 						<h2> Volume </h2>
-					</div> 
-						<p style="padding-left:5%"> Transaction<b> LOAD </b> 
+					</div>
+						<p style="padding-left:5%"> Transaction<b> LOAD </b>
 							<select name="mySelect" id="mySelect"
 						      ng-options="option.name for option in data2.Options track by option.id"
-						      ng-model="data2.selected"></select>  	
+						      ng-model="data2.selected"></select>
 								 <bars-chart chart-data="data_2" ></bars-chart>
 						</p>
 				</div>
@@ -274,13 +274,13 @@ limitations under the License.-->
 	<div id="trans" class="Trans" ng-controller="TRANSACTIONS">
 		<a name="F"></a>
 			<div class="Block_title">
-				<h1><b>Latest Transactions</b></h1>	
+				<h1><b>Latest Transactions</b></h1>
 				<p> Display number of Transactions: <input type="number" step="1", min="1", max="{{trans.length}}", ng-model="row_amount2"/>
 			</div>
 
-			<div class="Loading_symbol" ng-show="loader.loading">Loading..</div>	
+			<div class="Loading_symbol" ng-show="loader.loading">Loading..</div>
 					<table>
-						<thead>	
+						<thead>
 							<tr>
 								<th> Block# Origin </th>
 								<th> Seconds</th>
@@ -299,7 +299,7 @@ limitations under the License.-->
 								<td data-label="UUID">{{ trans[$index].uuid | limitTo : 13}}...</td>
 								<td data-label="Details">
 
-										<button ng-click="Update_transaction_selection_index($index)"> Expand </button>
+										<button class="btn_ignored" ng-click="Update_transaction_selection_index($index)"> Expand </button>
 									<form action='#openModal3' id="change3" style="display:none">
 										<input type="submit" value="Full Details">
 									</form>
@@ -309,7 +309,7 @@ limitations under the License.-->
 										<div id="openModal3" class="modalDialog" style="font-size: 120%; text-align:left;">
 											<div>
 												<a href="#close" title="Close" class="close">X</a>
-												<h2 style="text-align:center" >Transaction Information</h2>	
+												<h2 style="text-align:center" >Transaction Information</h2>
 													<div>
 														<p> <b>Type:</b> {{trans[transaction_selected].type }}</p>
 														<p> <b>ID:</b> {{ trans[transaction_selected].chaincodeID }} </p>
@@ -321,8 +321,8 @@ limitations under the License.-->
 														<p> <b>Confidence Level:</b> {{ trans[transaction_selected].confidentialityLevel }} </p>
 														<p> <b>Cert:</b> {{ trans[transaction_selected].cert }} </p>
 														<p> <b>Signature:</b> {{ trans[transaction_selected].signature }} </p>
-														<hr>										
-													</div>			
+														<hr>
+													</div>
 											</div>
 										</div>
 								</td>
