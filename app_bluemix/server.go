@@ -71,7 +71,7 @@ func main() {
 		panic(fmt.Errorf("Failed to initialize the crypto layer: %s", err))
 	}
 	// Enable fabric 'confidentiality'
-	confidentiality(true)
+	confidentiality(viper.GetBool("security.privacy"))
 
 	// Initialize a peer connect to submit
 	// transactions to the fabric network.

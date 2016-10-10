@@ -1,1 +1,1 @@
-const REST_ENDPOINT = "https://1f50c0c3-7ac0-4d9e-bcbf-b0162f9c360b_vp1.us.blockchain.ibm.com";
+const REST_ENDPOINT = "https://df84d8a1-89f9-42ae-a4b4-a21d87afb937_vp0.us.blockchain.ibm.com";
